@@ -103,8 +103,10 @@ html, body, #map {
 #map {
   position: absolute;
   inset: 0;
-  padding-top: 120px;
+  padding-top: 120px; /* whatever your header needs */
+  touch-action: pan-x pan-y; /* allow touch panning */
 }
+
 .controls {
   display: grid;
   grid-template-columns: 1fr auto; /* select | button */

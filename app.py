@@ -17,7 +17,7 @@ EAST,  WEST  = -90.28, -90.31
 
 # ----- Build graphs once at startup (OSMnx 1.x signatures) -----
 def build_graph(network_type: str):
-    G = ox.graph_from_bbox(north=NORTH, south=SOUTH, east=EAST, west=WEST, network_type=network_type)
+    G = ox.graph_from_point(((NORTH+SOUTH)/2, (EAST+WEST)/2), dist=3000, network_type=network_type)
     Gp = ox.project_graph(G)  # projected (meters), keeps same node IDs
     # Ensure 'length' exists on edges
     for u, v, k, d in Gp.edges(keys=True, data=True):
@@ -96,29 +96,31 @@ for Gp in (Gp_walk, Gp_bike, Gp_drive):
 
 # ---------- Utilities ----------
 def route_to_geojson(G, Gp, route):
-    """Build a GeoJSON LineString following each edge's geometry (correct key)."""
     from itertools import tee
-    def pairwise(seq): a, b = tee(seq); next(b, None); return zip(a, b)
+    def pairwise(seq): a,b = tee(seq); next(b, None); return zip(a,b)
     coords = []
     for u, v in pairwise(route):
-        # pick the (u,v,k) the router would choose: minimal final_w
+        # pick the exact edge the router would choose (min final_w)
         k_best = min(Gp.get_edge_data(u, v).items(), key=lambda kv: kv[1].get("final_w", 1e18))[0]
         d_geo = G.get_edge_data(u, v, k_best)
         if d_geo and d_geo.get("geometry") is not None:
             seg = [(lat, lon) for lon, lat in d_geo["geometry"].coords]
         else:
             seg = [(G.nodes[u]["y"], G.nodes[u]["x"]), (G.nodes[v]["y"], G.nodes[v]["x"])]
-        if coords and coords[-1] == seg[0]: coords.extend(seg[1:])
-        else: coords.extend(seg)
-    # GeoJSON expects [lon,lat]
+        if coords and coords[-1] == seg[0]:
+            coords.extend(seg[1:])
+        else:
+            coords.extend(seg)
     return {
         "type": "FeatureCollection",
         "features": [{
             "type": "Feature",
             "properties": {},
-            "geometry": {"type": "LineString", "coordinates": [[y_x[1], y_x[0]] for y_x in coords]}
+            "geometry": {"type": "LineString",
+                         "coordinates": [[x[1], x[0]] for x in coords]}
         }]
     }
+
 
 def pick_graph(mode: str):
     mode = (mode or "walk").lower()
@@ -164,7 +166,31 @@ def route_api():
 
     path = nx.shortest_path(Gp, s, t, weight="final_w")
     total_w = nx.path_weight(Gp, path, weight="final_w")
-    return jsonify({"geojson": route_to_geojson(G, Gp, path), "total_weight": total_w, "mode": mode})
+
+    # snapped coordinates for s,t from unprojected G
+    snap_o = {"lat": G.nodes[s]["y"], "lon": G.nodes[s]["x"]}
+    snap_d = {"lat": G.nodes[t]["y"], "lon": G.nodes[t]["x"]}
+
+    # great-circle-ish quick distance (meters) just for UI thresholding
+    def haversine_m(lat1, lon1, lat2, lon2):
+        from math import radians, sin, cos, asin, sqrt
+        R = 6371000.0
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
+        a = sin(dlat/2)**2 + cos(radians(lat1))*cos(radians(lat2))*sin(dlon/2)**2
+        return 2*R*asin(sqrt(a))
+
+    dist_o = haversine_m(olat, olon, snap_o["lat"], snap_o["lon"])
+    dist_d = haversine_m(dlat, dlon, snap_d["lat"], snap_d["lon"])
+
+    return jsonify({
+        "geojson": route_to_geojson(G, Gp, path),
+        "total_weight": total_w,
+        "mode": mode,
+        "snapped_origin": snap_o,
+        "snapped_destination": snap_d,
+        "snap_dist_m": {"origin": dist_o, "destination": dist_d}
+    })
 
 
 if __name__ == "__main__":
