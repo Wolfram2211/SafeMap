@@ -63,11 +63,6 @@
   height:100%;
 }
 
-/* Sticky header sits inside the same scroll context as the list */
-.overlay-bottom .sheet-header{
-  /* nothing else needed; sticky works because parent (sheet-inner) isn't scrolling */
-}
-
 /* The list scrolls */
 .overlay-bottom .sheet-scroll{
   flex:1;                       /* fill remaining height */
@@ -163,10 +158,11 @@
           <!-- two stacked inputs in the pill -->
           <div class="flex-1">
             <input id="origin-input"
-                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-base px-3 py-1"
+                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-gray-400 text-base px-3 py-1"
                    placeholder="From (address or lat,lon)" type="text"/>
+            <div class="h-px bg-gray-300 mx-3"></div>
             <input id="dest-input"
-                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-base px-3 py-1"
+                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-gray-400 text-base px-3 py-1"
                    placeholder="To (address or lat,lon)" type="text"/>
           </div>
 
@@ -240,31 +236,6 @@
         window.map.setView(center, 13);
       });
     });
-    document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('toggle-crimes');
-  if (!toggle) return;
-
-  // one stable handler so we can add/remove cleanly
-  const refreshCrimes = async () => {
-    if (toggle.checked) {
-      try { await showCrimeDots(); } catch (e) { console.error(e); }
-    }
-  };
-
-  toggle.addEventListener('change', async (e) => {
-    if (e.target.checked) {
-      await showCrimeDots();               // draw immediately
-      window.map?.off('moveend', refreshCrimes);
-      window.map?.on('moveend', refreshCrimes);
-    } else {
-      window.map?.off('moveend', refreshCrimes);
-      hideCrimeDots();
-    }
-  });
-
-  // (optional) debug
-  toggle.addEventListener('click', () => console.log('crime toggle clicked'));
-});
   </script>
 
   <!-- Your main logic (routing, geocode, etc.) -->

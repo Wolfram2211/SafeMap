@@ -255,8 +255,6 @@ function renderRouteChoicesTemplate(routes, mode = "walk") {
     box.appendChild(card);
   });
 }
-// ---- Crime dots layer ----
-let crimeLayer = null;
 
 function colorBySeverity(sev) {
   // blue->orange scale; tweak as desired
@@ -269,6 +267,20 @@ function colorBySeverity(sev) {
 function radiusBySeverity(sev) {
   // Keep small to avoid clutter; clamp between 2 and 8
   const r = 2 + Math.log10(Math.max(1, sev+1)) * 3;
+  return Math.max(2, Math.min(8, r));
+}
+// ---- Crime dots (single owned layer) ----
+let crimeLayer = null;           // the layer group we own
+let crimeMoveHandler = null;     // stable handler ref so we can remove it
+
+function colorBySeverity(sev) {
+  if (sev >= 100) return "#d97706";
+  if (sev >= 50)  return "#f59e0b";
+  if (sev >= 10)  return "#60a5fa";
+  return "#93c5fd";
+}
+function radiusBySeverity(sev) {
+  const r = 2 + Math.log10(Math.max(1, sev + 1)) * 3;
   return Math.max(2, Math.min(8, r));
 }
 
@@ -285,19 +297,20 @@ async function fetchCrimesInView() {
 
 async function showCrimeDots() {
   const data = await fetchCrimesInView();
-  // Create layer once
+
+  // create the layer once
   if (!crimeLayer) {
     crimeLayer = L.layerGroup().addTo(map);
   } else {
     crimeLayer.clearLayers();
   }
 
-  // Render as circle markers (Canvas-backed for speed)
+  // add markers into OUR layer (not directly to map)
   const pts = [];
   data.features.forEach(f => {
     const [lng, lat] = f.geometry.coordinates;
     const sev = f.properties?.severity ?? 0;
-    const marker = L.circleMarker([lat, lng], {
+    const m = L.circleMarker([lat, lng], {
       radius: radiusBySeverity(sev),
       color: colorBySeverity(sev),
       fillColor: colorBySeverity(sev),
@@ -305,19 +318,47 @@ async function showCrimeDots() {
       weight: 0.5,
       opacity: 0.9
     }).bindTooltip(`Severity: ${sev}`, { direction: 'top', offset: [0, -6] });
-    pts.push(marker);
+    pts.push(m);
   });
   if (pts.length) L.featureGroup(pts).addTo(crimeLayer);
 }
 
 function hideCrimeDots() {
+  // stop refreshing first
+  if (crimeMoveHandler) {
+    map.off('moveend', crimeMoveHandler);
+    crimeMoveHandler = null;
+  }
+  // remove our layer from the map entirely
   if (crimeLayer) {
-    crimeLayer.remove();
+    map.removeLayer(crimeLayer);
     crimeLayer = null;
   }
 }
 
+// ---- Toggle binding (run once on DOM ready) ----
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('toggle-crimes');
+  if (!toggle) return;
 
+  toggle.addEventListener('change', async (e) => {
+    if (e.target.checked) {
+      await showCrimeDots(); // draw immediately
+
+      // install ONE stable refresh handler
+      if (!crimeMoveHandler) {
+        crimeMoveHandler = async () => {
+          if (toggle.checked) {
+            try { await showCrimeDots(); } catch (err) { console.error(err); }
+          }
+        };
+        map.on('moveend', crimeMoveHandler);
+      }
+    } else {
+      hideCrimeDots(); // removes handler + layer
+    }
+  });
+});
 
 
 // --- Form handling ---
