@@ -29,7 +29,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Default center (St. Louis for example)
-map.setView([38.6270, -90.1994], 13);
+map.setView([38.6480784, -90.3089436], 15);
 
 let originMarker = null;
 let destMarker = null;
@@ -109,36 +109,149 @@ function drawMultiRoutes(data) {
   if (group.length) map.fitBounds(fg.getBounds(), { padding: [40, 40] });
 
   // Render the choice cards
-  renderRouteChoices(data.routes);
+  renderRouteChoicesTemplate(data.routes, data.mode);
+}
+// Speeds for ETA (m/s); tweak to your liking
+const MODE_SPEEDS = { walk: 1.3, bike: 4.5, drive: 11.0 };
+
+function fmtMinutes(seconds) {
+  const m = Math.round(seconds / 60);
+  return `${m}m`;
+}
+function fmtMiles(meters) {
+  return `${(meters / 1609.344).toFixed(1)} mi`;
 }
 
-function renderRouteChoices(routes) {
-  const box = document.getElementById('route-choices');
+// Build a friendly name by beta if backend didn't supply one
+function nameForBeta(beta) {
+  if (beta === 0) return "Fastest Route";
+  if (beta >= 1) return "Safest Route";
+  return "Balanced Route";
+}
+
+// Turn mean risk into a 0–100 “safety” score relative to the set
+function safetyScores(routes) {
+  const maxRisk = Math.max(1e-9, ...routes.map(r => r.stats.mean_risk || 0));
+  return routes.map(r => {
+    const rel = (r.stats.mean_risk || 0) / maxRisk;         // 0..1 (1 = worst)
+    const score = Math.round((1 - Math.min(1, rel)) * 100); // 0..100 (100=best)
+    return Math.max(0, Math.min(100, score));
+  });
+}
+function safetyBadge(score) {
+  if (score >= 80) return { text: "Safe",     klass: "badge badge-safe" };
+  if (score >= 60) return { text: "Moderate", klass: "badge badge-moderate" };
+  return { text: "Caution", klass: "badge badge-caution" };
+}
+function featureChips(beta) {
+  if (beta === 0)   return ["Main thoroughfares", "Sidewalks available", "Direct route prioritizes speed"];
+  if (beta >= 1.0)  return ["Excellent safety features", "Sidewalks available", "Longer distance"];
+  return ["Mixed safety features", "Sidewalks available", "Moderate complexity"];
+}
+
+// === NEW: render like the template ===
+function renderRouteChoicesTemplate(routes, mode = "walk") {
+  const box = document.getElementById("route-choices");
   if (!box) return;
-  box.innerHTML = ""; // reset
+  box.innerHTML = "";
 
-  routes.forEach((r) => {
-    const detour = r.stats.detour_m_vs_beta0;
-    const detourTxt = (Math.abs(detour) < 1) ? "same distance as β=0"
-                    : (detour > 0 ? `+${detour.toFixed(0)} m` : `${detour.toFixed(0)} m`);
+  const speeds = MODE_SPEEDS[mode] || MODE_SPEEDS.walk;
+  const scores = safetyScores(routes);
 
-    const riskDelta = r.stats.risk_delta_vs_beta0;
-    const riskTxt = (Math.abs(riskDelta) < 1) ? "same risk as β=0"
-                  : (riskDelta < 0 ? `−${Math.abs(riskDelta).toFixed(0)} m·risk` : `+${riskDelta.toFixed(0)} m·risk`);
+  routes.forEach((r, idx) => {
+    const length_m = r.stats.length_m || 0;
+    // if you have per-edge speeds, you can compute ETA better; here we estimate from length + mode speed
+    const etaSec = length_m / speeds;
+    const safety = scores[idx];
+    const badge  = safetyBadge(safety);
+    const title  = r.name || nameForBeta(r.beta);
+    const chips  = featureChips(r.beta);
+    const miles  = fmtMiles(length_m);
 
-    const card = document.createElement('div');
-    card.className = 'route-card';
-    card.innerHTML = `
-      <div class="route-dot" style="background:${r.color}"></div>
-      <div>
-        <div class="route-title">${r.name} (β=${r.beta})</div>
-        <div class="route-desc">
-          ${ (r.stats.length_m/1000).toFixed(2) } km · mean risk ${ r.stats.mean_risk.toFixed(3) }
-          · ${detourTxt} · ${riskTxt}
-        </div>
+    // Wrapper (clickable)
+    const card = document.createElement("a");
+    // TODO: change this URL later to your details page
+    card.href = `/route-details?beta=${encodeURIComponent(r.beta)}&mode=${encodeURIComponent(mode)}`;
+    card.className =
+      "relative block rounded-3xl border border-slate-200 shadow-sm " +
+      "hover:shadow-md transition overflow-hidden px-4 py-4";
+
+    // Accent rail on the left using the route color
+    const rail = document.createElement("div");
+    rail.className = "route-rail";
+    rail.style.background = r.color || "#1d4ed8";
+    card.appendChild(rail);
+
+    // Top row
+    const top = document.createElement("div");
+    top.className = "flex items-start justify-between";
+    top.innerHTML = `
+      <div class="flex items-center gap-2">
+        <div class="text-xl font-extrabold text-slate-900">${title}</div>
+        <div class="text-xs text-slate-500 font-semibold">Optimal</div>
+      </div>
+      <span class="${badge.klass}">${badge.text}</span>
+    `;
+    card.appendChild(top);
+
+    // Subrow: time + distance + safety score
+    const meta = document.createElement("div");
+    meta.className = "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm";
+    meta.innerHTML = `
+      <div class="flex items-center gap-2 text-slate-700">
+        <span class="material-symbols-outlined text-slate-500">schedule</span>
+        <span class="font-semibold">${fmtMinutes(etaSec)}</span>
+        <span class="text-slate-500">· ${miles}</span>
+      </div>
+      <div class="flex items-center gap-2 text-slate-700">
+        <span class="material-symbols-outlined text-slate-500">shield</span>
+        <span class="font-semibold">${safety}/100</span>
+        <span class="text-slate-500">Safety</span>
+      </div>
+      <div class="hidden sm:flex items-center justify-end text-slate-400 text-xs">
+        <span>Confidence</span>&nbsp;<span>90%</span>
       </div>
     `;
-    // (No click behavior yet, as requested)
+    card.appendChild(meta);
+
+    // Progress bar
+    const progWrap = document.createElement("div");
+    progWrap.className = "mt-3";
+    progWrap.innerHTML = `
+      <div class="text-xs text-slate-500 mb-1">Safety Score</div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${safety}%;"></div>
+      </div>
+    `;
+    card.appendChild(progWrap);
+
+    // Feature chips row
+    const chipsRow = document.createElement("div");
+    chipsRow.className = "mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm";
+    chips.forEach((c, i) => {
+      const span = document.createElement("span");
+      // make the third chip orange like the mock
+      span.className = i === 2 ? "text-orange-600 font-semibold" : "text-slate-700";
+      span.textContent = c;
+      chipsRow.appendChild(span);
+    });
+    card.appendChild(chipsRow);
+
+    // Subtitle
+    const subtitle = document.createElement("div");
+    subtitle.className = "mt-2 text-sm text-slate-400";
+    subtitle.textContent =
+      r.beta === 0 ? "Direct route optimized for walk"
+    : r.beta >= 1 ? "Maximum safety route for walk"
+                  : "Good compromise between speed and safety for walk";
+    card.appendChild(subtitle);
+
+    // Chevron
+    const chev = document.createElement("div");
+    chev.className = "absolute right-3 top-3 text-slate-400";
+    chev.innerHTML = `<span class="material-symbols-outlined">chevron_right</span>`;
+    card.appendChild(chev);
+
     box.appendChild(card);
   });
 }
@@ -188,7 +301,8 @@ form.addEventListener('submit', async (e) => {
     // 4) Ask server for route (snapped to network)
     const data = await fetchRoutesMulti({ lat: o.lat, lon: o.lon }, { lat: d.lat, lon: d.lon }, mode);
     drawMultiRoutes(data);
-
+    document.getElementById("route-sheet").style.display = "block";
+    document.dispatchEvent(new Event("routes:updated"));
   } catch (err) {
     console.error(err);
     alert(err.message || "Search/route failed.");

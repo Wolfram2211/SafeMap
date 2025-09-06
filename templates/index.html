@@ -1,47 +1,245 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>SafeMap</title>
+  <meta charset="utf-8"/>
+  <title>Safe Route - Map View</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
+  <!-- Tailwind (forms + container-queries plugins) -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  /* App takes full viewport */
+  #app {
+    position: relative;
+    height: 100vh;
+    background: var(--surface-bg, #fff);
+    overflow: hidden; /* prevents body scroll fighting map touch */
+  }
+  /* Map fills everything behind overlays */
+  #map {
+    position: absolute;
+    inset: 0;          /* top:0; right:0; bottom:0; left:0 */
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: pan-x pan-y;
+  }
+  /* Top search overlay: doesn't steal map gestures except on the form itself */
+  .overlay-top {
+    position: absolute;
+    top: max(env(safe-area-inset-top), 0px);
+    left: 0; right: 0;
+    z-index: 30;
+    pointer-events: none;               /* allow pan/zoom on empty areas */
+    padding: 16px;
+  }
+  .overlay-top .surface {
+    pointer-events: auto;               /* re-enable clicks inside the pill */
+  }
+  /* Bottom route sheet overlay */
+/* Bottom sheet sizing + layout */
+.overlay-bottom{
+  position:absolute; left:0; right:0; bottom:0; z-index:20;
+  height: 48vh;                 /* fixed viewport-based height */
+  max-height: 60vh;             /* don’t exceed 60% of screen */
+  background: var(--surface-bg, #fff);
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.08);
+  border-top-left-radius: 1.25rem; border-top-right-radius: 1.25rem;
+  display:flex;                 /* so inner can use 100% height */
+}
+#route-sheet {
+  display: none;
+}
+/* Make inner container take the full sheet height */
+.overlay-bottom .sheet-inner{
+  display:flex; flex-direction:column;
+  height:100%;
+}
+
+/* Sticky header sits inside the same scroll context as the list */
+.overlay-bottom .sheet-header{
+  /* nothing else needed; sticky works because parent (sheet-inner) isn't scrolling */
+}
+
+/* The list scrolls */
+.overlay-bottom .sheet-scroll{
+  flex:1;                       /* fill remaining height */
+  overflow-y:auto;              /* enable scrolling */
+  -webkit-overflow-scrolling: touch; /* smooth on iOS */
+}
+
+
+  #route-choices {
+    overflow-y: auto;
+  }
+
+
+    /* Accent rail on the left of each card */
+  .route-rail {
+    position: absolute;
+    left: -2px;
+    top: 10px;
+    bottom: 10px;
+    width: 6px;
+    border-radius: 9999px;
+  }
+
+  /* Progress track & fill */
+  .progress-track {
+    height: 8px;
+    background: #e5e7eb;       /* gray-200 */
+    border-radius: 9999px;
+  }
+  .progress-fill {
+    height: 8px;
+    background: #0f172a;       /* slate-900 */
+    border-radius: 9999px;
+  }
+
+  /* Pills */
+  .badge {
+    font-size: 12px;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 9999px;
+    font-weight: 700;
+  }
+  .badge-safe     { color:#0f172a; background:#0ea5e91a; } /* subtle */
+  .badge-caution  { color:#fff; background:#ef4444; }
+  .badge-moderate { color:#7c2d12; background:#f59e0b1a; }
+  /* Compact route card */
+  .route-card {
+    padding: 0.75rem 1rem;     /* less vertical/horizontal padding */
+    border-radius: 1rem;       /* slightly smaller corners */
+    font-size: 0.9rem;         /* shrink base font */
+  }
+
+  /* Title row smaller */
+  .route-card .text-xl {
+    font-size: 1rem;           /* was 1.25rem+ */
+  }
+
+  /* Progress bar smaller */
+  .progress-track,
+  .progress-fill {
+    height: 6px;               /* was 8px */
+  }
+
+  /* Tighten sections */
+  .route-card .mt-3 { margin-top: 0.5rem !important; }
+  .route-card .mt-2 { margin-top: 0.25rem !important; }
+
+  /* Chips row smaller */
+  .route-card .chips span {
+    font-size: 0.75rem;
+  }
+
+</style>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin />
-
-  <!-- Your stylesheet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+<link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin/>
 </head>
-<body>
+<body class="bg-[var(--surface-bg)]">
   <div id="app">
-    <div id="topbar">
-      <form id="od-form" autocomplete="off">
-        <div class="input-rows">
-          <input id="origin-input" class="row-input" placeholder="Origin (address or lat,lon)" />
-          <input id="dest-input"   class="row-input" placeholder="Destination (address or lat,lon)" />
-        </div>
-        <div class="controls">
-          <select id="mode-select" aria-label="Travel mode">
-            <option value="walk" selected>Walk</option>
+    <!-- MAP (always visible, fills screen) -->
+    <div id="map"></div>
+
+    <!-- TOP SEARCH OVERLAY -->
+    <header class="overlay-top">
+      <form id="od-form" class="mx-auto max-w-xl surface">
+        <div class="flex items-center bg-white rounded-full shadow-lg px-4 py-2 gap-1">
+          <span class="material-symbols-outlined text-[var(--text-secondary)]">search</span>
+
+          <!-- two stacked inputs in the pill -->
+          <div class="flex-1">
+            <input id="origin-input"
+                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-base px-3 py-1"
+                   placeholder="From (address or lat,lon)" type="text"/>
+            <input id="dest-input"
+                   class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] text-base px-3 py-1"
+                   placeholder="To (address or lat,lon)" type="text"/>
+          </div>
+
+          <select id="mode-select"
+                  class="bg-white text-[var(--text-primary)] border-0 focus:ring-0">
+            <option value="walk">Walk</option>
             <option value="bike">Bike</option>
             <option value="drive">Drive</option>
           </select>
-          <button id="search-btn" type="submit">Search</button>
+
+          <button id="search-btn" type="submit"
+                  class="ml-2 rounded-full bg-white font-bold pr-2 pl-0 py-2">
+            Go
+          </button>
         </div>
       </form>
-      <div id="route-choices"></div>
-    </div>
+    </header>
 
-    <div id="map"></div>
+    <!-- BOTTOM ROUTE SHEET OVERLAY -->
+    <section id="route-sheet" class="overlay-bottom">
+      <div class="sheet-inner p-4 max-w-3xl mx-auto">
+        <!-- Sticky header stays visible -->
+        <div class="sheet-header pb-2 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <h2 class="text-lg font-bold text-[var(--text-primary)]">Route Options</h2>
+          <p class="text-sm text-[var(--text-secondary)]">Select your preferred route</p>
+        </div>
+
+        <!-- This is the ONLY scrolling area -->
+        <div id="route-choices" class="sheet-scroll mt-3 space-y-3 pr-1">
+          <!-- cards injected here -->
+        </div>
+      </div>
+    </section>
+
   </div>
-
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>
-
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin></script>
   <script>
-    const GEOCODE_URL = "{{ url_for('geocode') }}"; // used by app.js
+  const GEOCODE_URL = "{{ url_for('geocode') }}";
+  const ROUTE_MULTI_URL = "{{ url_for('route_multi') }}";
   </script>
+  <!-- Initialize the map -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const center = [38.6480784, -90.3089436];  // fallback center
+      window.map = L.map("map", {
+        tap: false,
+        zoomControl: false   // we use custom buttons
+      }).setView(center, 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(window.map);
+
+      // Fix sizing issues when overlays exist
+      setTimeout(() => window.map.invalidateSize(), 0);
+
+      // Hook zoom/nav buttons
+      document.getElementById("btn-zoomin")?.addEventListener("click", () => window.map.zoomIn());
+      document.getElementById("btn-zoomout")?.addEventListener("click", () => window.map.zoomOut());
+      document.getElementById("btn-center")?.addEventListener("click", () => {
+        window.map.setView(center, 13);
+      });
+    });
+    document.addEventListener('routes:updated', () => {
+  document.getElementById('route-sheet')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+});
+  </script>
+
+  <!-- Your main logic (routing, geocode, etc.) -->
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
+
 </html>

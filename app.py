@@ -26,7 +26,7 @@ CRIMES_CSV = "crimes.csv"
 # Betas to materialize as edge attributes
 BETAS      = [0.0, 0.3, 1.0]
 BETA_TAGS  = {0.0: "b0", 0.3: "b03", 1.0: "b1"}
-COLORS     = {0.0: "#6b7280", 0.3: "#1d4ed8", 1.0: "#f59e0b"}  # gray, blue, amber
+COLORS     = {0.0: "#ff0000", 0.3: "#1d4ed8", 1.0: "#0fdf00"}  # gray, blue, amber
 NAMES      = {0.0: "Shortest distance", 0.3: "Balanced safety", 1.0: "Avoid risk strongly"}
 
 # =========
@@ -248,9 +248,13 @@ def snap_to_nearest_edge_endpoint(G, Gp, lat: float, lon: float):
 # =========
 # ROUTES
 # =========
-
 @app.route("/")
-def index():
+def welcome():
+    # New landing page
+    return render_template("welcome.html")
+
+@app.route("/map_page")
+def map_page():
     return render_template("index.html")
 
 @app.route("/geocode", methods=["GET"])
