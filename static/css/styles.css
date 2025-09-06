@@ -102,3 +102,34 @@ html, body {
   margin-right: 10px;
 }
 .leaflet-container { font: inherit; }
+#route-choices {
+  width: min(920px, 94vw);
+  margin: 8px auto 0;
+  display: grid;
+  gap: 6px;
+}
+
+.route-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.route-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #111827;
+}
+
+.route-title {
+  font-weight: 600;
+}
+
+.route-desc {
+  color: #374151;
+}

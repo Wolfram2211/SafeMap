@@ -74,17 +74,75 @@ function fitToMarkers() {
   else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
 }
 
-// Call Flask /route
-async function fetchRoute(orig, dest, mode) {
+async function fetchRoutesMulti(orig, dest, mode) {
   const qs = new URLSearchParams({
     orig_lat: orig.lat, orig_lon: orig.lon,
     dest_lat: dest.lat, dest_lon: dest.lon,
     mode
   }).toString();
-  const res = await fetch(`/route?${qs}`);
-  if (!res.ok) throw new Error("Route failed");
-  return await res.json(); // { geojson, total_weight, mode, snapped_origin, snapped_destination, snap_dist_m }
+  const res = await fetch(`/route_multi?${qs}`);
+  if (!res.ok) throw new Error("Route computation failed");
+  return await res.json(); // {mode, snapped_origin, snapped_destination, routes:[...] }
 }
+
+let routeLayers = []; // store 3 Leaflet layers
+
+function clearRoutes() {
+  routeLayers.forEach(l => l && l.remove());
+  routeLayers = [];
+}
+
+function drawMultiRoutes(data) {
+  clearRoutes();
+  const group = [];
+
+  data.routes.forEach((r, idx) => {
+    const layer = L.geoJSON(r.geojson, {
+      style: { color: r.color, weight: 5, opacity: 0.9 }
+    }).addTo(map);
+    routeLayers.push(layer);
+    group.push(layer);
+  });
+
+  // Fit to everything (snapped markers optional)
+  const fg = L.featureGroup(group);
+  if (group.length) map.fitBounds(fg.getBounds(), { padding: [40, 40] });
+
+  // Render the choice cards
+  renderRouteChoices(data.routes);
+}
+
+function renderRouteChoices(routes) {
+  const box = document.getElementById('route-choices');
+  if (!box) return;
+  box.innerHTML = ""; // reset
+
+  routes.forEach((r) => {
+    const detour = r.stats.detour_m_vs_beta0;
+    const detourTxt = (Math.abs(detour) < 1) ? "same distance as β=0"
+                    : (detour > 0 ? `+${detour.toFixed(0)} m` : `${detour.toFixed(0)} m`);
+
+    const riskDelta = r.stats.risk_delta_vs_beta0;
+    const riskTxt = (Math.abs(riskDelta) < 1) ? "same risk as β=0"
+                  : (riskDelta < 0 ? `−${Math.abs(riskDelta).toFixed(0)} m·risk` : `+${riskDelta.toFixed(0)} m·risk`);
+
+    const card = document.createElement('div');
+    card.className = 'route-card';
+    card.innerHTML = `
+      <div class="route-dot" style="background:${r.color}"></div>
+      <div>
+        <div class="route-title">${r.name} (β=${r.beta})</div>
+        <div class="route-desc">
+          ${ (r.stats.length_m/1000).toFixed(2) } km · mean risk ${ r.stats.mean_risk.toFixed(3) }
+          · ${detourTxt} · ${riskTxt}
+        </div>
+      </div>
+    `;
+    // (No click behavior yet, as requested)
+    box.appendChild(card);
+  });
+}
+
 
 // --- Form handling ---
 const form        = document.getElementById('od-form');
@@ -128,24 +186,9 @@ form.addEventListener('submit', async (e) => {
     fitToMarkers();
 
     // 4) Ask server for route (snapped to network)
-    const data = await fetchRoute({ lat: o.lat, lon: o.lon }, { lat: d.lat, lon: d.lon }, mode);
+    const data = await fetchRoutesMulti({ lat: o.lat, lon: o.lon }, { lat: d.lat, lon: d.lon }, mode);
+    drawMultiRoutes(data);
 
-    // 5) Draw route polyline
-    if (routeLayer) routeLayer.remove();
-    routeLayer = L.geoJSON(data.geojson, { style: { color: "#1d4ed8", weight: 5 } }).addTo(map);
-    map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-
-    // 6) Optional dotted connectors from raw → snapped if offset is big
-    const DOT = 15; // meters
-    const connStyle = { color: "#6b7280", weight: 2, dashArray: "4,6" };
-    if (data.snap_dist_m?.origin > DOT) {
-      L.polyline([[o.lat, o.lon], [data.snapped_origin.lat, data.snapped_origin.lon]], connStyle).addTo(map);
-    }
-    if (data.snap_dist_m?.destination > DOT) {
-      L.polyline([[d.lat, d.lon], [data.snapped_destination.lat, data.snapped_destination.lon]], connStyle).addTo(map);
-    }
-
-    console.log("Mode:", data.mode, "Total weight:", data.total_weight);
   } catch (err) {
     console.error(err);
     alert(err.message || "Search/route failed.");
