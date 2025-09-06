@@ -155,6 +155,7 @@
 
     <!-- TOP SEARCH OVERLAY -->
     <header class="overlay-top">
+
       <form id="od-form" class="mx-auto max-w-xl surface">
         <div class="flex items-center bg-white rounded-full shadow-lg px-4 py-2 gap-1">
           <span class="material-symbols-outlined text-[var(--text-secondary)]">search</span>
@@ -182,6 +183,12 @@
           </button>
         </div>
       </form>
+      <div class="surface mt-2">
+        <label class="inline-flex items-center gap-2 bg-white/90 rounded-full px-3 py-1 shadow-sm border">
+          <input id="toggle-crimes" type="checkbox" class="rounded accent-blue-600" />
+          <span class="text-sm text-slate-700">Show crime dots</span>
+        </label>
+      </div>
     </header>
 
     <!-- BOTTOM ROUTE SHEET OVERLAY -->
@@ -233,8 +240,30 @@
         window.map.setView(center, 13);
       });
     });
-    document.addEventListener('routes:updated', () => {
-  document.getElementById('route-sheet')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('toggle-crimes');
+  if (!toggle) return;
+
+  // one stable handler so we can add/remove cleanly
+  const refreshCrimes = async () => {
+    if (toggle.checked) {
+      try { await showCrimeDots(); } catch (e) { console.error(e); }
+    }
+  };
+
+  toggle.addEventListener('change', async (e) => {
+    if (e.target.checked) {
+      await showCrimeDots();               // draw immediately
+      window.map?.off('moveend', refreshCrimes);
+      window.map?.on('moveend', refreshCrimes);
+    } else {
+      window.map?.off('moveend', refreshCrimes);
+      hideCrimeDots();
+    }
+  });
+
+  // (optional) debug
+  toggle.addEventListener('click', () => console.log('crime toggle clicked'));
 });
   </script>
 

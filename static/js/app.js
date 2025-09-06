@@ -255,6 +255,69 @@ function renderRouteChoicesTemplate(routes, mode = "walk") {
     box.appendChild(card);
   });
 }
+// ---- Crime dots layer ----
+let crimeLayer = null;
+
+function colorBySeverity(sev) {
+  // blue->orange scale; tweak as desired
+  if (sev >= 100) return "#d97706"; // amber-600 for very severe
+  if (sev >= 50)  return "#f59e0b"; // amber-500
+  if (sev >= 10)  return "#60a5fa"; // blue-400
+  return "#93c5fd";                 // blue-300 (low)
+}
+
+function radiusBySeverity(sev) {
+  // Keep small to avoid clutter; clamp between 2 and 8
+  const r = 2 + Math.log10(Math.max(1, sev+1)) * 3;
+  return Math.max(2, Math.min(8, r));
+}
+
+async function fetchCrimesInView() {
+  const b = map.getBounds();
+  const qs = new URLSearchParams({
+    west:  b.getWest(), south: b.getSouth(),
+    east:  b.getEast(), north: b.getNorth()
+  }).toString();
+  const res = await fetch(`/crimes?${qs}`);
+  if (!res.ok) throw new Error("Failed to load crimes");
+  return await res.json();
+}
+
+async function showCrimeDots() {
+  const data = await fetchCrimesInView();
+  // Create layer once
+  if (!crimeLayer) {
+    crimeLayer = L.layerGroup().addTo(map);
+  } else {
+    crimeLayer.clearLayers();
+  }
+
+  // Render as circle markers (Canvas-backed for speed)
+  const pts = [];
+  data.features.forEach(f => {
+    const [lng, lat] = f.geometry.coordinates;
+    const sev = f.properties?.severity ?? 0;
+    const marker = L.circleMarker([lat, lng], {
+      radius: radiusBySeverity(sev),
+      color: colorBySeverity(sev),
+      fillColor: colorBySeverity(sev),
+      fillOpacity: 0.7,
+      weight: 0.5,
+      opacity: 0.9
+    }).bindTooltip(`Severity: ${sev}`, { direction: 'top', offset: [0, -6] });
+    pts.push(marker);
+  });
+  if (pts.length) L.featureGroup(pts).addTo(crimeLayer);
+}
+
+function hideCrimeDots() {
+  if (crimeLayer) {
+    crimeLayer.remove();
+    crimeLayer = null;
+  }
+}
+
+
 
 
 // --- Form handling ---
@@ -308,3 +371,4 @@ form.addEventListener('submit', async (e) => {
     alert(err.message || "Search/route failed.");
   }
 });
+

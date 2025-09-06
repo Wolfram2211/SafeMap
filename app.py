@@ -368,6 +368,36 @@ def route_api():
 def list_routes():
     return "<pre>" + "\n".join(sorted(str(r) for r in app.url_map.iter_rules())) + "</pre>"
 
+@app.route("/crimes", methods=["GET"])
+def crimes_api():
+    # Optionally filter by bbox if provided: ?west=&south=&east=&north=
+    try:
+        west  = float(request.args.get("west"))   if request.args.get("west")  else None
+        south = float(request.args.get("south"))  if request.args.get("south") else None
+        east  = float(request.args.get("east"))   if request.args.get("east")  else None
+        north = float(request.args.get("north"))  if request.args.get("north") else None
+    except Exception:
+        west = south = east = north = None
+
+    df = CRIMES.copy()
+    if all(v is not None for v in (west, south, east, north)):
+        df = df[(df["lon"] >= west) & (df["lon"] <= east) &
+                (df["lat"] >= south) & (df["lat"] <= north)]
+
+    features = []
+    for _, row in df.iterrows():
+        features.append({
+            "type": "Feature",
+            "properties": {
+                "severity": float(row.get("severity", 0.0))
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(row["lon"]), float(row["lat"])]
+            }
+        })
+    return jsonify({"type": "FeatureCollection", "features": features})
+
 # =========
 # MAIN
 # =========
