@@ -11,36 +11,26 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 </head>
 <body>
-  <div id="topbar">
-  <form id="od-form" autocomplete="off">
-    <div class="input-rows">
-      <input id="origin-input" class="row-input" placeholder="Origin (address or place)" />
-      <input id="dest-input" class="row-input" placeholder="Destination (address or place)" />
+  <div id="app">
+    <div id="topbar">
+      <form id="od-form" autocomplete="off">
+        <div class="input-rows">
+          <input id="origin-input" class="row-input" placeholder="Origin (address or lat,lon)" />
+          <input id="dest-input"   class="row-input" placeholder="Destination (address or lat,lon)" />
+        </div>
+        <div class="controls">
+          <select id="mode-select" aria-label="Travel mode">
+            <option value="walk" selected>Walk</option>
+            <option value="bike">Bike</option>
+            <option value="drive">Drive</option>
+          </select>
+          <button id="search-btn" type="submit">Search</button>
+        </div>
+      </form>
     </div>
 
-    <div class="controls">
-      <!-- Mode dropdown -->
-      <select id="mode-select" aria-label="Travel mode">
-        <option value="walk" selected>Walk</option>
-        <option value="bike">Bike</option>
-        <option value="drive">Drive</option>
-      </select>
-
-      <button id="search-btn" type="submit">Search</button>
-    </div>
-  </form>
-</div>
-
-<div id="map"></div>
-
-  <div id="map"></div>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>
-  <script>
-    const GEOCODE_URL = "{{ url_for('geocode') }}";
-  </script>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <div id="map"></div>
+  </div>
 </body>
+
 </html>

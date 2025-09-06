@@ -1,7 +1,28 @@
 // static/js/app.js
 
 // --- Leaflet initialization ---
-const map = L.map('map', { tap: true });
+// app.js
+const map = L.map('map', {
+  zoomControl: true,
+  scrollWheelZoom: true,
+  touchZoom: true,
+  dragging: true,
+  inertia: true,
+
+  // iOS Safari quirk: disabling Leaflet’s "tap" handler often fixes dead touches
+  tap: false
+});
+
+// if something disabled them earlier, re-enable explicitly:
+map.dragging.enable();
+map.touchZoom.enable();
+map.scrollWheelZoom.enable();
+map.boxZoom.enable();
+map.keyboard.enable();
+
+// Optional: move zoom buttons
+map.zoomControl.setPosition('bottomright');
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'

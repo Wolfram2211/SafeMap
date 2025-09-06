@@ -1,29 +1,42 @@
-html, body, #map {
+/* Base */
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #f8f9fb;
+  overflow: hidden;           /* prevent page scroll stealing touch */
+  overscroll-behavior: none;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  background: #f8f9fb;
 }
 
+/* App layout: header (auto height) + map (fills rest) */
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;              /* full viewport */
+}
+
+/* Top bar lives in its own row now (not overlapping the map) */
 #topbar {
-  position: fixed;
-  top: env(safe-area-inset-top);
-  left: 0; right: 0;
+  position: sticky;           /* stays at the top if needed */
+  top: env(safe-area-inset-top, 0px);
   z-index: 1000;
   padding: 8px;
   display: flex;
   justify-content: center;
+  background: transparent;    /* no big white band */
 }
 
+/* Origin+Destination form */
 #od-form {
   width: min(920px, 94vw);
-  background: #fff;
+  background: #ffffff;
   border-radius: 14px;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.10);
-  padding: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  padding: 12px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .input-rows {
@@ -34,94 +47,25 @@ html, body, #map {
 .row-input {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 12px 12px;
+  padding: 12px;
   font-size: 16px;
   outline: none;
 }
 
 .controls {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto; /* dropdown | button */
   gap: 8px;
   align-items: center;
 }
 
-/* Segmented control (3-way) */
-.segmented {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  background: #f3f4f6;
-  border-radius: 12px;
-  padding: 4px;
-  overflow: hidden;
-}
-
-.segmented input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.segmented label {
-  text-align: center;
-  padding: 10px 0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #374151;
-  z-index: 1;
-  cursor: pointer;
-  user-select: none;
-}
-
-.segmented .seg-bg {
-  position: absolute;
-  top: 4px; bottom: 4px;
-  left: 4px;
-  width: calc((100% - 8px) / 3);
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  transition: transform 180ms ease;
-}
-
-/* move highlight based on checked input */
-#mode-walk:checked ~ .seg-bg { transform: translateX(0%); }
-#mode-bike:checked ~ .seg-bg { transform: translateX(100%); }
-#mode-drive:checked ~ .seg-bg { transform: translateX(200%); }
-
-#search-btn {
-  border: none;
-  background: #2563eb;
-  color: white;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 16px;
-}
-
-/* leave space for the card */
-#map {
-  position: absolute;
-  inset: 0;
-  padding-top: 120px; /* whatever your header needs */
-  touch-action: pan-x pan-y; /* allow touch panning */
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: 1fr auto; /* select | button */
-  gap: 8px;
-  align-items: center;
-}
-
-/* NEW: style the dropdown */
 #mode-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 12px 12px;
+  padding: 12px;
   font-size: 16px;
   background: #fff;
   background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%),
@@ -134,9 +78,27 @@ html, body, #map {
   background-repeat: no-repeat;
 }
 
-/* optional: ensure the map leaves space for the form */
-#map {
-  position: absolute;
-  inset: 0;
-  padding-top: 120px;
+#search-btn {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
 }
+
+/* Map fills the second row entirely */
+#map {
+  height: 100%;
+  width: 100%;
+  touch-action: pan-x pan-y;  /* allow drag + pinch */
+  pointer-events: auto;
+}
+
+/* Leaflet tweaks */
+.leaflet-control-container .leaflet-control-zoom {
+  margin-top: 10px;
+  margin-right: 10px;
+}
+.leaflet-container { font: inherit; }
