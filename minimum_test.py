@@ -7,7 +7,6 @@ import numpy as np
 from sklearn.neighbors import BallTree
 from shapely.geometry import Point
 import geopandas as gpd
-import pyproj
 from shapely.geometry import Point
 from itertools import tee
 def nearby_node_weights(Gp, lat, lon, radius_m=200):
@@ -89,11 +88,11 @@ crimes = pd.DataFrame({
 })
 new_row = {"lat":38.6526264, "lon":-90.2939061, "severity":150}
 crimes = pd.concat([crimes, pd.DataFrame([new_row])], ignore_index=True)
-G = ox.graph_from_place("St. Louis, Missouri, USA", network_type="walk")
+north, south = 38.652, 38.641   # latitudes
+east, west   = -90.273, -90.321  # longitudes
+
+G = ox.graph_from_point(((north+south)/2, (east+west)/2), dist=1000, network_type="walk")
 Gp = ox.project_graph(G)
-# 2) add edge lengths (meters) and speeds (km/h), then compute travel time (seconds)
-""" G = ox.add_edge_speeds(G)         # uses OSM tags to estimate speeds
-G = ox.add_edge_travel_times(G)   # adds 'travel_time' attribute """
 crs = Gp.graph["crs"]
 crimes_gdf = gpd.GeoDataFrame(
     crimes,
@@ -130,12 +129,6 @@ for i, (idxs, ds) in enumerate(zip(indices, dists)):
     weights = np.exp(-ds / alpha)
     risk_per_node[i] = np.sum(sev[idxs] * weights)
 
-# Optional: normalize to [0,1] for interpretability
-""" if risk_per_node.max() > 0:
-    risk_per_node = (risk_per_node - risk_per_node.min()) / (risk_per_node.max() - risk_per_node.min())
-else:
-    risk_per_node[:] = 0.0 """
-
 # Attach node risk to graph
 for nid, r in zip(node_ids, risk_per_node):
     Gp.nodes[nid]["crime_risk"] = float(r)
@@ -162,7 +155,6 @@ route = nx.shortest_path(Gp, orig_node, dest_node, weight="final_w")
 route_latlon = [(G.nodes[n]['y'], G.nodes[n]['x']) for n in route]
 
 m = folium.Map(location=[G.nodes[route[0]]['y'], G.nodes[route[0]]['x']], zoom_start=13, tiles="CartoDB positron")
-
 
 # crime points as small circle markers (careful: many points can be heavy)
 for y, x, s in zip(crimes["lat"], crimes["lon"], crimes["severity"]):
