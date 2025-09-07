@@ -14,43 +14,86 @@
     html, body { height:100%; margin:0; font-family:"Spline Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
     #map { position:fixed; inset:0; }
     /* bottom info bar */
-    .info-bar {
-      position: fixed; left: 0; right: 0; bottom: 0;
-      background: var(--bar-bg);
-      box-shadow: var(--bar-shadow);
-      border-top-left-radius: 1rem; border-top-right-radius: 1rem;
-      padding: 12px 16px 16px;
+    .info-bar{
+    position:fixed; left:0; right:0; bottom:0;
+    background:#fff; box-shadow:0 -8px 24px rgba(0,0,0,.08);
+    border-top-left-radius:1rem; border-top-right-radius:1rem;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
     }
-    .metrics { display:grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 10px; }
-    .label { font-size: 12px; color: var(--muted); }
-    .value { font-size: 18px; font-weight: 800; color: var(--text); }
-    .end-btn {
-      display:block; width:100%; text-align:center;
-      background: var(--danger); color:#fff; font-weight:800;
-      padding: 14px 16px; border-radius: 9999px; text-decoration: none;
+
+    /* Centered inner container prevents button touching edges */
+    .bar-inner{
+    max-width: 90%;           /* tweak as you like */
+    margin: 0 auto;
+    }
+
+    /* Metrics centered and evenly spaced */
+    .metrics{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:12px; margin-bottom:10px;
+    text-align:center;          /* center text */
+    justify-items:center;       /* center grid items */
+    }
+
+    .label{ font-size:12px; color:#6b7280; }
+    .value{ font-size:18px; font-weight:800; color:#0f172a; }
+
+    /* Full-width inside the centered container (not screen edge) */
+    .end-btn{
+    display:block;
+    text-align:center; text-decoration:none;
+    background:#ef4444; color:#fff; font-weight:800;
+    padding:14px 16px; border-radius:9999px;
     }
     .panic-btn {
-      position: fixed; right: 16px; bottom: 96px;
-      background:#111827; color:#fff; border-radius:9999px;
-      padding:12px 16px; font-weight:700; text-decoration:none; box-shadow: 0 8px 20px rgba(0,0,0,.15);
+    position: fixed;
+    right: 16px;
+    bottom: 170px;               /* sits above the info bar */
+    background: #dc2626;        /* strong red (Tailwind red-600) */
+    color: #fff;
+    border-radius: 9999px;      /* fully round */
+    padding: 18px 24px;
+    font-weight: 900;
+    font-size: 1.25rem;
+    text-decoration: none;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    border: 3px solid #fff;     /* white border for contrast */
+    transition: transform 0.1s ease-in-out, background 0.2s;
     }
+
+    .panic-btn:hover {
+    background: #b91c1c;        /* darker red on hover */
+    transform: scale(1.05);
+    }
+
+    .panic-btn:active {
+    transform: scale(0.95);
+    }
+
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <!-- Panic FAB -->
-  <a id="panic-link" class="panic-btn" href="{{ url_for('panic_page') }}">Panic</a>
+  <a id="panic-link" class="panic-btn" href="{{ url_for('panic_page') }}">
+  🚨 Panic
+    </a>
+
 
   <!-- Bottom info bar -->
-  <div class="info-bar">
-    <div class="metrics">
-      <div><div class="label">Distance</div><div id="miles" class="value">—</div></div>
-      <div><div class="label">Time</div><div id="eta" class="value">—</div></div>
-      <div><div class="label">Arrival</div><div id="arrival" class="value">—</div></div>
+    <div class="info-bar">
+    <div class="bar-inner">
+        <div class="metrics">
+        <div><div class="label">Distance</div><div id="miles" class="value">—</div></div>
+        <div><div class="label">Time</div><div id="eta" class="value">—</div></div>
+        <div><div class="label">Arrival</div><div id="arrival" class="value">—</div></div>
+        </div>
+        <a id="end-link" class="end-btn" href="{{ url_for('end_page') }}">End Route</a>
     </div>
-    <a id="end-link" class="end-btn" href="{{ url_for('end_page') }}">End Route</a>
-  </div>
+    </div>
+
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>

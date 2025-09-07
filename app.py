@@ -248,6 +248,20 @@ def snap_to_nearest_edge_endpoint(G, Gp, lat: float, lon: float):
 # =========
 # ROUTES
 # =========
+import logging
+from flask import request
+
+logging.basicConfig(level=logging.INFO)
+
+@app.before_request
+def log_request():
+    logging.info(f"➡️ {request.remote_addr} {request.method} {request.path}")
+
+@app.after_request
+def log_response(response):
+    logging.info(f"⬅️ {response.status} {request.method} {request.path}")
+    return response
+
 @app.route("/")
 def welcome():
     # New landing page
@@ -410,7 +424,11 @@ def panic_page():
 
 @app.route("/end")
 def end_page():
-    return "<h1>Route Ended</h1><p>Summary / feedback goes here.</p>"
+    return render_template("feedback.html")
+
+@app.route("/thank_you")
+def thank_you():
+    return render_template("thank_you.html")
 
 # =========
 # MAIN
@@ -418,4 +436,4 @@ def end_page():
 
 if __name__ == "__main__":
     # For LAN testing, bind to all interfaces
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=80, debug=False)

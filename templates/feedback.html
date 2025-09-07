@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta charset="utf-8"/>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+<title>Safe Route Feedback</title>
+<link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style type="text/tailwindcss">
+      :root {
+        --primary-color: #1173d4;
+        --background-color: #f0f4f8;
+        --card-background-color: #ffffff;
+        --text-primary: #111418;
+        --text-secondary: #6b7280;
+        --border-color: #dbe0e6;
+      }
+      .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+        gap: 0.25rem;
+      }
+      .star-rating input {
+        display: none;
+      }
+      .star-rating label {
+        color: var(--border-color);
+        font-size: 2.5rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      .star-rating input:checked ~ label,
+      .star-rating label:hover,
+      .star-rating label:hover ~ label {
+        color: #facc15;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--background-color)]" style='font-family: Inter, "Noto Sans", sans-serif;'>
+<div class="relative flex size-full min-h-screen flex-col justify-between group/design-root overflow-x-hidden">
+<div class="bg-white shadow-sm">
+<div class="w-full max-w-lg mx-auto px-4">
+<div class="flex items-center p-4">
+<button class="text-[var(--text-primary)]">
+<a href="{{ url_for('map_page') }}" class="text-[var(--text-primary)]">
+  <span class="material-symbols-outlined">arrow_back_ios_new</span>
+</a>
+
+</button>
+<h1 class="flex-1 text-center text-xl font-bold text-[var(--text-primary)]">Route Feedback</h1>
+<div class="w-8"></div>
+</div>
+</div>
+</div>
+<main class="flex-1 overflow-y-auto pb-24">
+<div class="mx-auto max-w-lg p-4">
+<div class="mb-6 rounded-lg bg-[var(--card-background-color)] p-6 shadow-sm">
+<h2 class="mb-4 text-lg font-semibold text-[var(--text-primary)]">How would you rate this route overall?</h2>
+<div class="star-rating">
+<input id="star5" name="rating" type="radio" value="5"/><label for="star5" title="5 stars">★</label>
+<input id="star4" name="rating" type="radio" value="4"/><label for="star4" title="4 stars">★</label>
+<input id="star3" name="rating" type="radio" value="3"/><label for="star3" title="3 stars">★</label>
+<input id="star2" name="rating" type="radio" value="2"/><label for="star2" title="2 stars">★</label>
+<input id="star1" name="rating" type="radio" value="1"/><label for="star1" title="1 star">★</label>
+</div>
+</div>
+<div class="space-y-6">
+<div class="rounded-lg bg-[var(--card-background-color)] p-6 shadow-sm">
+<h2 class="mb-4 text-lg font-semibold text-[var(--text-primary)]">How well-lit was the route?</h2>
+<div class="flex justify-between">
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="lighting" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-yellow-400"> lightbulb </span>
+<span class="text-sm">Dim</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="lighting" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-yellow-400"> lightbulb </span>
+<span class="text-sm">Moderate</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input checked="" class="peer sr-only" name="lighting" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-yellow-400"> lightbulb </span>
+<span class="text-sm">Bright</span>
+</label>
+</div>
+</div>
+<div class="rounded-lg bg-[var(--card-background-color)] p-6 shadow-sm">
+<h2 class="mb-4 text-lg font-semibold text-[var(--text-primary)]">Did you feel safe?</h2>
+<div class="flex justify-between">
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="safety" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-red-500"> sentiment_very_dissatisfied </span>
+<span class="text-sm">Unsafe</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="safety" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-yellow-500"> sentiment_neutral </span>
+<span class="text-sm">Neutral</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input checked="" class="peer sr-only" name="safety" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-green-500"> sentiment_very_satisfied </span>
+<span class="text-sm">Safe</span>
+</label>
+</div>
+</div>
+<div class="rounded-lg bg-[var(--card-background-color)] p-6 shadow-sm">
+<h2 class="mb-4 text-lg font-semibold text-[var(--text-primary)]">What was the pedestrian traffic like?</h2>
+<div class="flex justify-between">
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="traffic" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-[var(--primary-color)]"> person </span>
+<span class="text-sm">Empty</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input checked="" class="peer sr-only" name="traffic" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-[var(--primary-color)]"> groups </span>
+<span class="text-sm">Moderate</span>
+</label>
+<label class="flex cursor-pointer flex-col items-center gap-2 text-[var(--text-secondary)]">
+<input class="peer sr-only" name="traffic" type="radio"/>
+<span class="material-symbols-outlined text-4xl text-gray-300 peer-checked:text-[var(--primary-color)]"> groups_2 </span>
+<span class="text-sm">Crowded</span>
+</label>
+</div>
+</div>
+<div class="rounded-lg bg-[var(--card-background-color)] p-6 shadow-sm">
+<label class="block text-lg font-semibold text-[var(--text-primary)] mb-2" for="comments">Additional Comments (Optional)</label>
+<textarea class="w-full rounded-md border-[var(--border-color)] p-2 focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]" id="comments" name="comments" placeholder="Tell us more about your experience..." rows="4"></textarea>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+<div class="mx-auto max-w-lg p-4">
+<button class="w-full cursor-pointer rounded-xl bg-[var(--primary-color)] px-5 py-4 text-center text-base font-bold text-white transition hover:bg-blue-700">
+<a href="{{ url_for('thank_you') }}"
+   class="w-full cursor-pointer rounded-xl bg-[var(--primary-color)] px-5 py-4 
+          text-center text-base font-bold text-white transition hover:bg-blue-700 block">
+  <span class="truncate">Submit Feedback</span>
+</a>
+
+
+</button>
+</div>
+</div>
+</div>
+
+</body></html>

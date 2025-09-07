@@ -1,48 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin />
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?display=swap&family=Noto+Sans:wght@400;500;700;900&family=Spline+Sans:wght@400;500;700"
-        onload="this.rel='stylesheet'">
-  <title>Safe Route Welcome Screen</title>
-  <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+  <title>Safe Route — Welcome</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+  <!-- Fonts & Tailwind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700;900&family=Spline+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <style type="text/tailwindcss">:root { --primary-color: #f9f506; }</style>
-  <style> body { min-height: max(884px, 100dvh); } </style>
+
+  <style type="text/tailwindcss">
+    :root { --primary-color: #f9f506; }
+  </style>
+  <style>
+    /* Mobile-first: fill dynamic viewport and respect safe areas */
+    html, body { height: 100%; margin: 0; }
+    body {
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      font-family: "Spline Sans","Noto Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    /* Optional: smoother image rendering */
+    .hero-img { image-rendering: -webkit-optimize-contrast; }
+  </style>
 </head>
-<body class="bg-white" style='font-family: "Spline Sans","Noto Sans",sans-serif;'>
-  <div class="relative flex min-h-screen flex-col bg-white">
-    <div class="flex-grow flex flex-col">
-      <div class="w-full h-96">
-        <div class="w-full h-full bg-center bg-no-repeat bg-cover"
-             style='background-image:url("https://lh3.googleusercontent.com/aida-public/AB6AXuBmQNmt057tfobpP74CMO2bnhlUEB54n6i5LNZUyZ_lp4mvVaVfXy_a5ATTXij6QuTAa7bKXL8e3_IUnaZC_ZL3wl1aAV6feomS62K_NvwYkL0kCIRc99694wqRbb9744iB4rZDJ-P6sPR-pqBfVQCMrAw89NZgR7YeUUCoHEeMP3b5E6RXchgouIvFan7p_33P9AoDKRq6hcRqwiCr32dzL1eYC2U5--hvfpttMnZM0HFFF-qqzHh5jpROpB1Vi8HctNpphygDpFQ");'>
-        </div>
-      </div>
-      <div class="px-6 py-8 text-center flex-grow flex flex-col justify-center">
-        <h1 class="text-slate-900 text-4xl font-bold leading-tight">Welcome to Safe Route</h1>
-        <p class="text-slate-600 text-lg leading-relaxed mt-4 max-w-md mx-auto">
-          Navigate your city with confidence. Safe Route prioritizes your safety, offering multiple routes based on speed and perceived risk.
-        </p>
+<body class="bg-white">
+  <div class="relative flex min-h-dvh flex-col bg-white">
+    <!-- Hero -->
+    <div class="w-full">
+      <!-- Use aspect ratio for consistent hero height across phones -->
+      <div class="w-full hero-img bg-center bg-no-repeat bg-cover aspect-[16/9] sm:aspect-[21/9]"
+           style='background-image:url("https://lh3.googleusercontent.com/aida-public/AB6AXuBmQNmt057tfobpP74CMO2bnhlUEB54n6i5LNZUyZ_lp4mvVaVfXy_a5ATTXij6QuTAa7bKXL8e3_IUnaZC_ZL3wl1aAV6feomS62K_NvwYkL0kCIRc99694wqRbb9744iB4rZDJ-P6sPR-pqBfVQCMrAw89NZgR7YeUUCoHEeMP3b5E6RXchgouIvFan7p_33P9AoDKRq6hcRqwiCr32dzL1eYC2U5--hvfpttMnZM0HFFF-qqzHh5jpROpB1Vi8HctNpphygDpFQ");'>
       </div>
     </div>
 
-    <div class="px-6 pb-8 pt-4">
-      <div class="flex flex-col gap-4">
-        <!-- Go to the map app -->
-        <a class="flex items-center justify-center rounded-full h-14 px-6 bg-[var(--primary-color)] text-slate-900 text-lg font-bold transition-transform duration-200 ease-in-out hover:scale-105"
-           href="{{ url_for('map_page') }}">
+    <!-- Copy -->
+    <main class="px-5 py-6 text-center flex-grow flex flex-col justify-center">
+      <h1 class="text-slate-900 text-3xl sm:text-4xl font-bold leading-tight">
+        Welcome to Safe Route
+      </h1>
+      <p class="text-slate-600 text-base sm:text-lg leading-relaxed mt-3 max-w-md mx-auto">
+        Navigate your city with confidence. Safe Route prioritizes your safety, offering multiple routes based on speed and perceived risk.
+      </p>
+    </main>
+
+    <!-- Actions -->
+    <footer class="px-5 pb-6 pt-2">
+      <div class="mx-auto w-full max-w-md flex flex-col gap-3">
+        <a href="{{ url_for('map_page') }}"
+           class="h-14 inline-flex items-center justify-center rounded-full px-6
+                  bg-[var(--primary-color)] text-slate-900 text-base sm:text-lg font-bold
+                  transition-transform duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.99]">
           Get Started
         </a>
 
-        <!-- Placeholder sign-in; point to your real auth route later -->
-        <a class="flex items-center justify-center rounded-full h-14 px-6 bg-slate-100 text-slate-900 text-lg font-bold transition-transform duration-200 ease-in-out hover:scale-105"
-           href="{{ url_for('map_page') }}">
+        <a href="{{ url_for('map_page') }}"
+           class="h-14 inline-flex items-center justify-center rounded-full px-6
+                  bg-slate-100 text-slate-900 text-base sm:text-lg font-bold
+                  transition-transform duration-200 ease-in-out hover:scale-[1.02] active:scale-[0.99]">
           Sign In
         </a>
       </div>
-    </div>
+    </footer>
   </div>
 </body>
 </html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Thank You - Safe Route</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;600&display=swap" rel="stylesheet"/>
+  <script>
+    // Redirect after 3 seconds
+    setTimeout(() => {
+      window.location.href = "{{ url_for('index') }}";
+    }, 3000);
+  </script>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: 'Spline Sans', sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      text-align: center;
+    }
+    .box {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1 class="text-2xl font-bold">🎉 Thank you!</h1>
+    <p class="mt-2 text-gray-600">Your feedback has been received.</p>
+    <p class="mt-4 text-sm text-gray-500">Redirecting you back to the map…</p>
+  </div>
+</body>
+</html>
