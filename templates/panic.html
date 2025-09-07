@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Panic - Safe Route</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <script>
+    // Redirect after 5 seconds
+    setTimeout(() => {
+      window.location.href = "{{ url_for('map_page') }}";
+    }, 5000);
+  </script>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #fee2e2; /* light red background */
+      color: #b91c1c;      /* strong red text */
+      text-align: center;
+    }
+    .box {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 2rem;
+      margin: 0 0 1rem 0;
+    }
+    p {
+      margin: 0.25rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🚨 Panic Mode</h1>
+    <p>Dialing <strong>911</strong>…</p>
+    <p class="text-gray-500">(No not really)</p>
+    <p class="mt-4 text-sm text-gray-400">Redirecting you back to the map shortly…</p>
+  </div>
+</body>
+</html>
