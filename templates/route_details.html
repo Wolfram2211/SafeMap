@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Safe Route – Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin>
+  <style>
+    :root{ --bar-bg:#fff; --bar-shadow:0 -8px 24px rgba(0,0,0,.08); --danger:#ef4444; --text:#0f172a; --muted:#6b7280; }
+    html, body { height:100%; margin:0; font-family:"Spline Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+    #map { position:fixed; inset:0; }
+    /* bottom info bar */
+    .info-bar {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      background: var(--bar-bg);
+      box-shadow: var(--bar-shadow);
+      border-top-left-radius: 1rem; border-top-right-radius: 1rem;
+      padding: 12px 16px 16px;
+    }
+    .metrics { display:grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 10px; }
+    .label { font-size: 12px; color: var(--muted); }
+    .value { font-size: 18px; font-weight: 800; color: var(--text); }
+    .end-btn {
+      display:block; width:100%; text-align:center;
+      background: var(--danger); color:#fff; font-weight:800;
+      padding: 14px 16px; border-radius: 9999px; text-decoration: none;
+    }
+    .panic-btn {
+      position: fixed; right: 16px; bottom: 96px;
+      background:#111827; color:#fff; border-radius:9999px;
+      padding:12px 16px; font-weight:700; text-decoration:none; box-shadow: 0 8px 20px rgba(0,0,0,.15);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Panic FAB -->
+  <a id="panic-link" class="panic-btn" href="{{ url_for('panic_page') }}">Panic</a>
+
+  <!-- Bottom info bar -->
+  <div class="info-bar">
+    <div class="metrics">
+      <div><div class="label">Distance</div><div id="miles" class="value">—</div></div>
+      <div><div class="label">Time</div><div id="eta" class="value">—</div></div>
+      <div><div class="label">Arrival</div><div id="arrival" class="value">—</div></div>
+    </div>
+    <a id="end-link" class="end-btn" href="{{ url_for('end_page') }}">End Route</a>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin></script>
+  <script>
+    // Inject backend URLs
+    const ROUTE_URL = "{{ url_for('route_api') }}";
+
+    // Defaults for ETA approximation (m/s); adjust to your app
+    const MODE_SPEEDS = { walk: 1.3, bike: 4.5, drive: 11.0 };
+
+    function qs(name){
+      const u = new URL(window.location.href);
+      const v = u.searchParams.get(name);
+      return v;
+    }
+    function fmtMiles(m){ return (m/1609.344).toFixed(1) + " mi"; }
+    function fmtMinutes(s){ return Math.round(s/60) + " min"; }
+    function arrivalString(sec){
+      const d = new Date(Date.now() + sec*1000);
+      const h = d.getHours();
+      const mm = d.getMinutes().toString().padStart(2,"0");
+      const h12 = ((h+11)%12)+1;
+      const ampm = h < 12 ? "AM" : "PM";
+      return `${h12}:${mm} ${ampm}`;
+    }
+
+    // Parse query (recommended to pass these when linking from cards)
+    // /route-details?beta=0.3&mode=walk&o=lat,lon&d=lat,lon
+    const beta = parseFloat(qs("beta") || "0.3");
+    const mode = (qs("mode") || "walk").toLowerCase();
+    const oStr = qs("o"); const dStr = qs("d");
+    let o = null, d = null;
+    if (oStr && dStr){
+      const [olat, olon] = oStr.split(",").map(Number);
+      const [dlat, dlon] = dStr.split(",").map(Number);
+      if (isFinite(olat) && isFinite(olon) && isFinite(dlat) && isFinite(dlon)){
+        o = {lat: olat, lon: olon}; d = {lat: dlat, lon: dlon};
+      }
+    }
+
+    // Map
+    const map = L.map('map', { tap:false, zoomControl:true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+
+    (async function init(){
+      try{
+        // If origin/dest provided, ask backend to compute single-beta route
+        if(!o || !d){
+          // Fallback: STL center
+          map.setView([38.6270, -90.1994], 14);
+          return;
+        }
+        const url = `${ROUTE_URL}?orig_lat=${o.lat}&orig_lon=${o.lon}&dest_lat=${d.lat}&dest_lon=${d.lon}&mode=${encodeURIComponent(mode)}&beta=${beta}`;
+        const res = await fetch(url);
+        if(!res.ok){ throw new Error("route failed"); }
+        const data = await res.json();
+
+        // draw route
+        const colorByBeta = (b)=> b===0? "#6b7280" : (b>=1? "#f59e0b" : "#1d4ed8");
+        const layer = L.geoJSON(data.geojson, { style:{ color: colorByBeta(beta), weight:6, opacity:0.95 }}).addTo(map);
+
+        // center & zoom on start
+        const s = data.snapped_origin || { lat:o.lat, lon:o.lon };
+        map.setView([s.lat, s.lon], 17);
+
+        // update metrics
+        const length_m = data.stats?.length_m || 0;
+        const v = MODE_SPEEDS[mode] || MODE_SPEEDS.walk;
+        const etaSec = length_m / v;
+        document.getElementById("miles").textContent   = fmtMiles(length_m);
+        document.getElementById("eta").textContent     = fmtMinutes(etaSec);
+        document.getElementById("arrival").textContent = arrivalString(etaSec);
+
+        // optional: markers (comment out if you want a clean map)
+        // L.circleMarker([s.lat, s.lon], {radius:5, color:'#111', fillColor:'#fff', fillOpacity:1}).addTo(map);
+        // const t = data.snapped_destination || { lat:d.lat, lon:d.lon };
+        // L.circleMarker([t.lat, t.lon], {radius:5, color:'#111', fillColor:'#fff', fillOpacity:1}).addTo(map);
+
+      }catch(err){
+        console.error(err);
+        alert("Could not load route details.");
+      }finally{
+        setTimeout(()=>map.invalidateSize(), 0);
+      }
+    })();
+  </script>
+</body>
+</html>

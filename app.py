@@ -398,6 +398,20 @@ def crimes_api():
         })
     return jsonify({"type": "FeatureCollection", "features": features})
 
+@app.route("/route-details")
+def route_details_page():
+    # Simple template; data comes via query params
+    return render_template("route_details.html")
+
+# stub pages you can replace later
+@app.route("/panic")
+def panic_page():
+    return "<h1>PANIC</h1><p>Implement SOS workflow here.</p>"
+
+@app.route("/end")
+def end_page():
+    return "<h1>Route Ended</h1><p>Summary / feedback goes here.</p>"
+
 # =========
 # MAIN
 # =========

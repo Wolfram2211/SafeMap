@@ -34,6 +34,7 @@ map.setView([38.6480784, -90.3089436], 15);
 let originMarker = null;
 let destMarker = null;
 let routeLayer = null;
+let lastQuery = { orig: null, dest: null, mode: "walk" };
 
 // --- Helpers ---
 
@@ -171,7 +172,14 @@ function renderRouteChoicesTemplate(routes, mode = "walk") {
     // Wrapper (clickable)
     const card = document.createElement("a");
     // TODO: change this URL later to your details page
-    card.href = `/route-details?beta=${encodeURIComponent(r.beta)}&mode=${encodeURIComponent(mode)}`;
+    // in renderRouteChoicesTemplate(...)
+    const buildLink = (r) => {
+    const { orig, dest, mode } = lastQuery; // ensure you saved these when searching
+    const o = `${orig.lat},${orig.lon}`;
+    const d = `${dest.lat},${dest.lon}`;
+    return `/route-details?beta=${encodeURIComponent(r.beta)}&mode=${encodeURIComponent(mode)}&o=${encodeURIComponent(o)}&d=${encodeURIComponent(d)}`;
+    };
+
     card.className =
       "relative block rounded-3xl border border-slate-200 shadow-sm " +
       "hover:shadow-md transition overflow-hidden px-4 py-4";
@@ -193,7 +201,9 @@ function renderRouteChoicesTemplate(routes, mode = "walk") {
       <span class="${badge.klass}">${badge.text}</span>
     `;
     card.appendChild(top);
-
+    const url = buildLink(r);
+    card.href = url;
+    card.rel = "noopener";
     // Subrow: time + distance + safety score
     const meta = document.createElement("div");
     meta.className = "mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm";
@@ -254,20 +264,6 @@ function renderRouteChoicesTemplate(routes, mode = "walk") {
 
     box.appendChild(card);
   });
-}
-
-function colorBySeverity(sev) {
-  // blue->orange scale; tweak as desired
-  if (sev >= 100) return "#d97706"; // amber-600 for very severe
-  if (sev >= 50)  return "#f59e0b"; // amber-500
-  if (sev >= 10)  return "#60a5fa"; // blue-400
-  return "#93c5fd";                 // blue-300 (low)
-}
-
-function radiusBySeverity(sev) {
-  // Keep small to avoid clutter; clamp between 2 and 8
-  const r = 2 + Math.log10(Math.max(1, sev+1)) * 3;
-  return Math.max(2, Math.min(8, r));
 }
 // ---- Crime dots (single owned layer) ----
 let crimeLayer = null;           // the layer group we own
@@ -401,6 +397,7 @@ form.addEventListener('submit', async (e) => {
     originMarker = setMarker(o.lat, o.lon, "Origin: " + o.display, originMarker);
     destMarker   = setMarker(d.lat, d.lon, "Destination: " + d.display, destMarker);
     fitToMarkers();
+    lastQuery = { orig: { lat: o.lat, lon: o.lon }, dest: { lat: d.lat, lon: d.lon }, mode };
 
     // 4) Ask server for route (snapped to network)
     const data = await fetchRoutesMulti({ lat: o.lat, lon: o.lon }, { lat: d.lat, lon: d.lon }, mode);
