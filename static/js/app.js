@@ -8,8 +8,6 @@ const map = L.map('map', {
   touchZoom: true,
   dragging: true,
   inertia: true,
-
-  // iOS Safari quirk: disabling Leaflet’s "tap" handler often fixes dead touches
   tap: false
 });
 
@@ -22,13 +20,23 @@ map.keyboard.enable();
 
 // Optional: move zoom buttons
 map.zoomControl.setPosition('bottomright');
+    L.tileLayer('https://tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="https://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	accessToken: '7eWRUsSKK9DXTUdzlBGWqjAZuLDrOQANQnhsXWhBBa9PRZlPW5bPRhAeF6WhqzGf'
+}).addTo(map);
+/* L.tileLayer("https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "&copy; OpenStreetMap &copy; Carto"
+}).addTo(map); */
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+/* L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-}).addTo(map);
+}).addTo(map); */
 
-// Default center (St. Louis for example)
+// Default center
 map.setView([38.6480784, -90.3089436], 15);
 
 let originMarker = null;
@@ -64,7 +72,14 @@ function setMarker(lat, lon, title, existing) {
   existing.bindPopup(title);
   return existing;
 }
-
+function showLoading() {
+  const el = document.getElementById('loading');
+  if (el) el.classList.remove('hidden');
+}
+function hideLoading() {
+  const el = document.getElementById('loading');
+  if (el) el.classList.add('hidden');
+}
 // Fit map to current markers
 function fitToMarkers() {
   const pts = [];
@@ -82,7 +97,18 @@ async function fetchRoutesMulti(orig, dest, mode) {
     mode
   }).toString();
   const res = await fetch(`/route_multi?${qs}`);
-  if (!res.ok) throw new Error("Route computation failed");
+  if (!res.ok) {
+  // Try to parse error JSON
+  let msg = `Request failed (${res.status})`;
+  try {
+    const data = await res.json();
+    if (data.error) msg = data.error;
+  } catch {
+    // if response isn’t JSON, fallback to status text
+    msg = res.statusText || msg;
+  }
+  throw new Error(msg);
+}
   return await res.json(); // {mode, snapped_origin, snapped_destination, routes:[...] }
 }
 
@@ -270,14 +296,12 @@ let crimeLayer = null;           // the layer group we own
 let crimeMoveHandler = null;     // stable handler ref so we can remove it
 
 function colorBySeverity(sev) {
-  if (sev >= 100) return "#d97706";
-  if (sev >= 50)  return "#f59e0b";
-  if (sev >= 10)  return "#60a5fa";
-  return "#93c5fd";
+return "#ff0000ff"
+
 }
 function radiusBySeverity(sev) {
-  const r = 2 + Math.log10(Math.max(1, sev + 1)) * 3;
-  return Math.max(2, Math.min(8, r));
+  const r = 3 + 2*sev;
+  return r;
 }
 
 async function fetchCrimesInView() {
@@ -310,9 +334,6 @@ async function showCrimeDots() {
       radius: radiusBySeverity(sev),
       color: colorBySeverity(sev),
       fillColor: colorBySeverity(sev),
-      fillOpacity: 0.7,
-      weight: 0.5,
-      opacity: 0.9
     }).bindTooltip(`Severity: ${sev}`, { direction: 'top', offset: [0, -6] });
     pts.push(m);
   });
@@ -333,25 +354,29 @@ function hideCrimeDots() {
 }
 
 // ---- Toggle binding (run once on DOM ready) ----
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('toggle-crimes');
-  if (!toggle) return;
+document.addEventListener("DOMContentLoaded", async () => {
+  const checkbox = document.getElementById("toggle-crimes");
 
-  toggle.addEventListener('change', async (e) => {
+  // if checkbox is pre-checked, load dots immediately
+  if (checkbox && checkbox.checked) {
+    await showCrimeDots();
+    const refresh = async () => {
+      if (checkbox.checked) await showCrimeDots();
+    };
+    map.on("moveend", refresh);
+  }
+
+  // normal listener for toggling
+  checkbox?.addEventListener("change", async (e) => {
     if (e.target.checked) {
-      await showCrimeDots(); // draw immediately
-
-      // install ONE stable refresh handler
-      if (!crimeMoveHandler) {
-        crimeMoveHandler = async () => {
-          if (toggle.checked) {
-            try { await showCrimeDots(); } catch (err) { console.error(err); }
-          }
-        };
-        map.on('moveend', crimeMoveHandler);
-      }
+      await showCrimeDots();
+      const refresh = async () => {
+        if (checkbox.checked) await showCrimeDots();
+      };
+      map.on("moveend", refresh);
     } else {
-      hideCrimeDots(); // removes handler + layer
+      hideCrimeDots();
+      map.off("moveend");
     }
   });
 });
@@ -361,15 +386,24 @@ document.addEventListener('DOMContentLoaded', () => {
 const form        = document.getElementById('od-form');
 const originInput = document.getElementById('origin-input');
 const destInput   = document.getElementById('dest-input');
+const goBtn       = document.getElementById('search-btn');
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const originQ = originInput.value.trim();
   const destQ   = destInput.value.trim();
   const modeSel = document.getElementById('mode-select');
   const mode    = modeSel ? modeSel.value : 'walk';
 
   if (!originQ || !destQ) return alert("Please enter both origin and destination.");
+
+  // UI: show loader + prevent double-submit
+  showLoading();
+  if (goBtn) {
+    goBtn.disabled = true;
+    goBtn.classList.add('opacity-60', 'cursor-not-allowed');
+  }
 
   try {
     // 1) Try lat/lon first
@@ -379,16 +413,16 @@ form.addEventListener('submit', async (e) => {
     // 2) Geocode fallback
     if (!o) {
       const r = await geocode(originQ);
-      if (!r.length) return alert("Origin not found.");
-      o = { lat: r[0].lat, lon: r[0].lon, display: r[0].display_name };
+      if (!r.length) throw new Error("Origin not found.");
+      o = { lat: +r[0].lat, lon: +r[0].lon, display: r[0].display_name };
     } else {
       o.display = `${o.lat.toFixed(6)}, ${o.lon.toFixed(6)} (raw)`;
     }
 
     if (!d) {
       const r = await geocode(destQ);
-      if (!r.length) return alert("Destination not found.");
-      d = { lat: r[0].lat, lon: r[0].lon, display: r[0].display_name };
+      if (!r.length) throw new Error("Destination not found.");
+      d = { lat: +r[0].lat, lon: +r[0].lon, display: r[0].display_name };
     } else {
       d.display = `${d.lat.toFixed(6)}, ${d.lon.toFixed(6)} (raw)`;
     }
@@ -402,11 +436,19 @@ form.addEventListener('submit', async (e) => {
     // 4) Ask server for route (snapped to network)
     const data = await fetchRoutesMulti({ lat: o.lat, lon: o.lon }, { lat: d.lat, lon: d.lon }, mode);
     drawMultiRoutes(data);
-    document.getElementById("route-sheet").style.display = "block";
+
+    // reveal bottom sheet
+    const sheet = document.getElementById("route-sheet");
+    if (sheet) sheet.style.display = "block";
     document.dispatchEvent(new Event("routes:updated"));
   } catch (err) {
     console.error(err);
     alert(err.message || "Search/route failed.");
+  } finally {
+    hideLoading();
+    if (goBtn) {
+      goBtn.disabled = false;
+      goBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+    }
   }
 });
-

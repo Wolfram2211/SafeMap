@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 import math
 import osmnx as ox
@@ -24,10 +24,10 @@ east,  west  = -90.28, -90.31
 CRIMES_CSV = "crimes.csv"
 
 # Betas to materialize as edge attributes
-BETAS      = [0.0, 0.3, 1.0]
-BETA_TAGS  = {0.0: "b0", 0.3: "b03", 1.0: "b1"}
-COLORS     = {0.0: "#ff0000", 0.3: "#1d4ed8", 1.0: "#0fdf00"}  # gray, blue, amber
-NAMES      = {0.0: "Shortest distance", 0.3: "Balanced safety", 1.0: "Avoid risk strongly"}
+BETAS      = [0.0, 0.2, 1.0]
+BETA_TAGS  = {0.0: "b0", 0.2: "b03", 1.0: "b1"}
+COLORS     = {0.0: "#ff0000", 0.2: "#1d4ed8", 1.0: "#0fdf00"}  # gray, blue, amber
+NAMES      = {0.0: "Shortest distance", 0.2: "Balanced safety", 1.0: "Avoid risk strongly"}
 
 # =========
 # GRAPH SETUP
@@ -73,12 +73,16 @@ def load_crimes():
         return df
     # fallback sample (very high severity point)
     return pd.DataFrame([
-        {"lat": 38.6521540, "lon": -90.2940248, "severity": 500},
+        {"lat": 38.6521540, "lon": -90.2940248, "severity": 5},
+        {"lat": 38.6531737, "lon": -90.3068828, "severity": 1},
+        {"lat": 38.6552049, "lon": -90.2964102, "severity": 1},
+        {"lat": 38.6467376, "lon": -90.2886279, "severity": 1},
+        
     ])
 
 CRIMES = load_crimes()
 
-def apply_crime_weights(Gp, crimes_df, R=300.0, alpha=150.0):
+def apply_crime_weights(Gp, crimes_df, R=500.0, alpha=50.0):
     """
     Compute node/edge crime_risk for a projected graph Gp.
     NOTE: This version intentionally does NOT normalize risk to [0,1],
@@ -267,6 +271,13 @@ def welcome():
     # New landing page
     return render_template("welcome.html")
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        # Ignore actual credentials for now — always redirect to map
+        return redirect(url_for("map_page"))
+    return render_template("login.html")
+
 @app.route("/map_page")
 def map_page():
     return render_template("index.html")
@@ -296,7 +307,10 @@ def route_multi():
         dlat = float(request.args["dest_lat"]); dlon = float(request.args["dest_lon"])
     except Exception:
         return jsonify({"error": "Missing or invalid origin/destination"}), 400
-
+    dis1 = ox.distance.great_circle(olat, olon, (north+south)/2,  (east+west)/2)
+    dis2 = ox.distance.great_circle(dlat, dlon, (north+south)/2,  (east+west)/2)
+    if dis1>2500 or dis2>2500:
+        return jsonify({"error": "Due to server's limited capabilities, currently addresses must be within 2500m from WashU."}), 400
     mode = (request.args.get("mode", "walk") or "walk").lower()
     G, Gp = pick_graph(mode)
 

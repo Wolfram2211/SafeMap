@@ -120,7 +120,7 @@
 
     // Parse query (recommended to pass these when linking from cards)
     // /route-details?beta=0.3&mode=walk&o=lat,lon&d=lat,lon
-    const beta = parseFloat(qs("beta") || "0.3");
+    const beta = parseFloat(qs("beta") || "0.2");
     const mode = (qs("mode") || "walk").toLowerCase();
     const oStr = qs("o"); const dStr = qs("d");
     let o = null, d = null;
@@ -134,8 +134,12 @@
 
     // Map
     const map = L.map('map', { tap:false, zoomControl:true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    L.tileLayer('https://tile.jawg.io/jawg-streets/{z}/{x}/{y}{r}.png?access-token={accessToken}', {
+	attribution: '<a href="https://jawg.io" title="Tiles Courtesy of Jawg Maps" target="_blank">&copy; <b>Jawg</b>Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	minZoom: 0,
+	maxZoom: 22,
+	accessToken: '7eWRUsSKK9DXTUdzlBGWqjAZuLDrOQANQnhsXWhBBa9PRZlPW5bPRhAeF6WhqzGf'
+}).addTo(map);
 
     (async function init(){
       try{
@@ -151,7 +155,7 @@
         const data = await res.json();
 
         // draw route
-        const colorByBeta = (b)=> b===0? "#6b7280" : (b>=1? "#f59e0b" : "#1d4ed8");
+        const colorByBeta = (b)=> b===0? "#ff0000" : (b>=1? "#0fdf00" : "#1d4ed8");
         const layer = L.geoJSON(data.geojson, { style:{ color: colorByBeta(beta), weight:6, opacity:0.95 }}).addTo(map);
 
         // center & zoom on start

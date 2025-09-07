@@ -147,7 +147,19 @@
   <div id="app">
     <!-- MAP (always visible, fills screen) -->
     <div id="map"></div>
-
+    <div id="loading"
+     class="hidden absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+      <div class="flex flex-col items-center gap-3">
+        <!-- Spinner -->
+        <svg class="animate-spin h-10 w-10 text-black" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                  stroke-width="4" fill="none"></circle>
+          <path class="opacity-90" fill="currentColor"
+                d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"></path>
+        </svg>
+        <p class="text-sm text-gray-700" role="status" aria-live="polite">Finding routes…</p>
+      </div>
+    </div>
     <!-- TOP SEARCH OVERLAY -->
     <header class="overlay-top">
 
@@ -159,11 +171,11 @@
           <div class="flex-1">
             <input id="origin-input"
                    class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-gray-400 text-base px-3 py-1"
-                   placeholder="From (address or lat,lon)" type="text"/>
+                   placeholder="From (address or lat,lon)" type="text" value="United Provisions"/>
             <div class="h-px bg-gray-300 mx-3"></div>
             <input id="dest-input"
                    class="form-input w-full bg-white border-none focus:ring-0 text-[var(--text-primary)] placeholder:text-gray-400 text-base px-3 py-1"
-                   placeholder="To (address or lat,lon)" type="text"/>
+                   placeholder="To (address or lat,lon)" type="text" value="Missouri History Museum"/>
           </div>
 
           <select id="mode-select"
@@ -181,8 +193,8 @@
       </form>
       <div class="surface mt-2">
         <label class="inline-flex items-center gap-2 bg-white/90 rounded-full px-3 py-1 shadow-sm border">
-          <input id="toggle-crimes" type="checkbox" class="rounded accent-blue-600" />
-          <span class="text-sm text-slate-700">Show crime dots</span>
+          <input id="toggle-crimes" type="checkbox" class="rounded accent-blue-600" checked/>
+          <span class="text-sm text-slate-700">Show *simulated* criminal activities</span>
         </label>
       </div>
     </header>
