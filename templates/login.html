@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Safe Route</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white flex items-center justify-center min-h-screen">
+  <div class="w-full max-w-sm p-6">
+    <h1 class="text-2xl font-extrabold text-center text-slate-800">
+      Login to your account
+    </h1>
+    <p class="text-center text-slate-500 mt-2">Hello, welcome back to your account</p>
+
+    <!-- Form -->
+    <form action="/login" method="post" class="mt-6 space-y-4">
+      <div>
+        <label for="email" class="block text-sm font-medium text-slate-700">E-mail</label>
+        <input id="email" name="email" type="email" required
+               placeholder="example@email.com"
+               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500 text-sm"/>
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+        <input id="password" name="password" type="password" required
+               placeholder="Your password"
+               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500 text-sm"/>
+      </div>
+
+      <div class="flex items-center justify-between text-sm">
+        <label class="flex items-center gap-2 text-slate-600">
+          <input type="checkbox" class="rounded border-gray-300"/>
+          Remember me
+        </label>
+        <a href="#" class="text-indigo-600 font-medium">Forgot Password?</a>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 rounded-md transition">
+        Login
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="flex items-center my-6">
+      <div class="flex-grow border-t border-gray-200"></div>
+      <span class="px-2 text-sm text-gray-400">or sign up with</span>
+      <div class="flex-grow border-t border-gray-200"></div>
+    </div>
+
+    <!-- Social buttons -->
+    <div class="flex justify-center gap-6">
+      <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" class="w-6 h-6" alt="Facebook"/></a>
+      <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" class="w-6 h-6" alt="Google"/></a>
+      <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/179/179309.png" class="w-6 h-6" alt="Apple"/></a>
+    </div>
+  </div>
+</body>
+</html>
